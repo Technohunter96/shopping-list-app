@@ -3,6 +3,14 @@ const itemInput = document.getElementById("item-input");
 const itemList = document.getElementById("item-list");
 const clearBtn = document.getElementById("clear");
 const itemFilter = document.getElementById("filter");
+const formBtn = itemForm.querySelector("button");
+let isEditMode = false;
+
+function displayItems() {
+  const itemsFromStorage = getItemsFromStorage();
+  itemsFromStorage.forEach((item) => addItemtoDOM(item));
+  resetUI();
+}
 
 function onAddItemSubmit(e) {
   e.preventDefault();
@@ -15,13 +23,28 @@ function onAddItemSubmit(e) {
     return;
   }
 
+  // Check for edit mode
+  if (isEditMode) {
+    const itemToEdit = itemList.querySelector(".edit-mode");
+
+    removeItemFromStorage(itemToEdit.textContent);
+    itemToEdit.classList.remove("edit-mode");
+    itemToEdit.remove();
+    isEditMode = false;
+  } else {
+    if (checkIfItemExists(newItem)) {
+      alert("That item already exists!");
+      return;
+    }
+  }
+
   // Create item DOM element
   addItemtoDOM(newItem);
 
   // Add item to local storage
   addItemToStorage(newItem);
 
-  checkUI();
+  resetUI();
 
   itemInput.value = "";
 }
@@ -53,7 +76,7 @@ function createIcon(classes) {
 }
 
 function addItemToStorage(item) {
-  const itemsFromStorage = getItemsFromStorage();
+  let itemsFromStorage = getItemsFromStorage();
 
   if (localStorage.getItem("items") === null) {
     itemsFromStorage = [];
@@ -80,13 +103,59 @@ function getItemsFromStorage() {
   return itemsFromStorage;
 }
 
-function removeItem(e) {
+function onClickItem(e) {
   if (e.target.parentElement.classList.contains("remove-item")) {
-    if (confirm("Are you sure?")) {
-      e.target.parentElement.parentElement.remove(); // parent of parent of icon (btn-li)
-      checkUI();
-    }
+    removeItem(e.target.parentElement.parentElement);
+  } else {
+    setItemToEdit(e.target);
   }
+}
+
+function checkIfItemExists(item) {
+  const itemsFromStorage = getItemsFromStorage();
+  return itemsFromStorage.includes(item);
+
+  // if(itemsFromStorage.includes(item)) {
+  //   return true
+  // } else {
+  //   return false
+  // }
+}
+
+function setItemToEdit(item) {
+  // EDIT MODE
+  isEditMode = true;
+
+  itemList
+    .querySelectorAll("li")
+    .forEach((i) => i.classList.remove("edit-mode")); // před kliknutím na další item se odstraní class edit-mode (grey), aby nebylo šedých více itemů najednou
+
+  item.classList.add("edit-mode");
+  formBtn.innerHTML = '<i class="fa-solid fa-pen"></i> Update Item';
+  formBtn.style.backgroundColor = "#228b22";
+  itemInput.value = item.textContent;
+}
+
+function removeItem(item) {
+  if (confirm("Are you sure")) {
+    // Remove item from DOM
+    item.remove();
+
+    // Remove item from storage
+    removeItemFromStorage(item.textContent);
+
+    resetUI();
+  }
+}
+
+function removeItemFromStorage(item) {
+  let itemsFromStorage = getItemsFromStorage();
+
+  // Filter out item to be removed
+  itemsFromStorage = itemsFromStorage.filter((i) => i !== item);
+
+  // Re-set to localstorage
+  localStorage.setItem("items", JSON.stringify(itemsFromStorage));
 }
 
 function clearItems(e) {
@@ -94,7 +163,10 @@ function clearItems(e) {
     itemList.removeChild(itemList.firstChild);
     // itemList.innerHTML = "";
   }
-  checkUI();
+
+  // Clear from localStorage
+  localStorage.removeItem("items");
+  resetUI();
 }
 
 function filterItems(e) {
@@ -112,7 +184,9 @@ function filterItems(e) {
   });
 }
 
-function checkUI() {
+function resetUI() {
+  itemInput.value = "";
+
   const items = itemList.querySelectorAll("li");
 
   if (items.length === 0) {
@@ -122,13 +196,23 @@ function checkUI() {
     clearBtn.style.display = "block";
     itemFilter.style.display = "block";
   }
+
+  formBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Item';
+  formBtn.style.backgroundColor = "#333";
+
+  isEditMode = false;
 }
 
-// Event Listeners
-itemForm.addEventListener("submit", onAddItemSubmit);
-itemList.addEventListener("click", removeItem);
-itemList.addEventListener("click", removeItem);
-clearBtn.addEventListener("click", clearItems);
-itemFilter.addEventListener("input", filterItems);
+// Initialize app
+function init() {
+  // Event Listeners
+  itemForm.addEventListener("submit", onAddItemSubmit);
+  itemList.addEventListener("click", onClickItem);
+  clearBtn.addEventListener("click", clearItems);
+  itemFilter.addEventListener("input", filterItems);
+  document.addEventListener("DOMContentLoaded", displayItems);
 
-checkUI();
+  resetUI();
+}
+
+init();
