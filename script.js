@@ -76,18 +76,8 @@ function createIcon(classes) {
 }
 
 function addItemToStorage(item) {
-  let itemsFromStorage = getItemsFromStorage();
-
-  if (localStorage.getItem("items") === null) {
-    itemsFromStorage = [];
-  } else {
-    itemsFromStorage = JSON.parse(localStorage.getItem("items"));
-  }
-
-  // Add new item to array
+  const itemsFromStorage = getItemsFromStorage();
   itemsFromStorage.push(item);
-
-  // Convert to JSON string and set to LS
   localStorage.setItem("items", JSON.stringify(itemsFromStorage));
 }
 
